@@ -1,0 +1,56 @@
+---
+ignore_git_branch: true
+
+# AWS Account IDs list
+account_ids: &account_ids
+  master: 581154480033
+  dev: 581154480033
+  stage: 581154480033
+  prod: 581154480033
+
+# AWS IAM Roles list - roles will be assumed by Runway to switch between environments
+roles: &roles
+  master: arn:aws:iam::581154480033:role/master_access
+  dev: arn:aws:iam::581154480033:role/AWSControlTowerExecution
+  stage: arn:aws:iam::581154480033:role/AWSControlTowerExecution
+  prod: arn:aws:iam::581154480033:role/AWSControlTowerExecution
+  
+# Runway deployment definition - define Terraform modules and the basic confugurations
+deployments:
+  # Deploys Terraform Infrastructure
+  - name: terraform
+    modules:
+      - ./terraform/vpc
+      - ./terraform/rds
+      - ./terraform/ec2
+    module_options:
+      terraform_backend_config:
+        bucket: challenge-task-terraform-state-us-east-1
+        region: us-east-1
+        dynamodb_table: terraform_state
+      terraform_version:
+        "*": 0.15.0
+    regions:
+      - us-east-1
+    account-id:
+      <<: *account_ids
+    assume-role:
+      <<: *roles
+
+  # Deploys EKS Terraform
+  - name: eks
+    modules:
+      - ./terraform/eks
+    module_options:
+      terraform_backend_config:
+        bucket: challenge-task-terraform-state-us-east-1
+        region: us-east-1
+        dynamodb_table: terraform_state
+      terraform_version:
+        "*": 0.15.0
+    regions:
+      - us-east-1
+    account-id:
+      <<: *account_ids
+    assume-role:
+      <<: *roles
